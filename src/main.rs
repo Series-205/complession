@@ -2,20 +2,25 @@ use std::collections::BinaryHeap;
 // use bitvec::*;
 
 fn main() {
-    let mut s_as_bytes = include_bytes!("/mnt/c/Users/81701/Downloads/large/bible.txt").to_vec();
+    let mut s_as_bytes = include_bytes!("../sample/bible.txt").to_vec();
+
+    // 0x00 が含まれないことを確認
+    for &x in s_as_bytes.iter() {
+        assert_ne!(x, 0x00);
+    }
     s_as_bytes.push(0x00u8);
 
-    let bwted = BWT::encode(&s_as_bytes);
+    let bwted = Bwt::encode(&s_as_bytes);
     let mtf = mtf_encode(&bwted.bwt);
 
     // println!("{:?}\n{:?}", sa.sa, sa.s);
     // println!("{}", String::from_utf8_lossy(&bwted.bwt));
     // println!("{:?}", mtf);
 
-    // let huffman_tree = HuffmanTree::new(&mtf);
-    // let encoded = huffman_encode_with_tree(&mtf, &huffman_tree);
+    let huffman_tree = HuffmanTree::new(&mtf);
+    let encoded = huffman_encode_with_tree(&mtf, &huffman_tree);
 
-    let encoded = gamma_encode(&mtf);
+    // let encoded = gamma_encode(&mtf);
 
     // let huffman_tree = HuffmanTree::new(&s_as_bytes);
     // let encoded = huffman_encode_with_tree(&s_as_bytes, &huffman_tree);
@@ -81,12 +86,12 @@ impl SuffixArray {
 }
 
 #[derive(Debug)]
-struct BWT {
+struct Bwt {
     bwt: Vec<u8>,
 }
 
-impl BWT {
-    fn encode(s: &[u8]) -> BWT {
+impl Bwt {
+    fn encode(s: &[u8]) -> Bwt {
         let sa = SuffixArray::new(s);
         let n = sa.s.len();
         let mut bwt = vec![0; n];
@@ -94,7 +99,7 @@ impl BWT {
             bwt[i] = sa.s[(x + n - 1) % n];
         }
 
-        BWT { bwt: bwt }
+        Bwt { bwt: bwt }
     }
 }
 
