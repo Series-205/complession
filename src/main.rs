@@ -1,4 +1,5 @@
 use std::collections::BinaryHeap;
+use std::time::Instant;
 // use bitvec::*;
 
 fn main() {
@@ -10,15 +11,27 @@ fn main() {
     }
     s_as_bytes.push(0x00u8);
 
+    let clock = Instant::now();
+    
     let bwted = Bwt::encode(&s_as_bytes);
+    println!("{:?} for encode BWT", clock.elapsed());
+
+    let clock = Instant::now();
+    
     let mtf = mtf_encode(&bwted.bwt);
+    println!("{:?} for encode MTF", clock.elapsed());
 
     // println!("{:?}\n{:?}", sa.sa, sa.s);
     // println!("{}", String::from_utf8_lossy(&bwted.bwt));
     // println!("{:?}", mtf);
 
+    let clock = Instant::now();
     let huffman_tree = HuffmanTree::new(&mtf);
+    println!("{:?} for build the Huffman tree", clock.elapsed());
+
+    let clock = Instant::now();
     let encoded = huffman_encode_with_tree(&mtf, &huffman_tree);
+    println!("{:?} for encode Huffman", clock.elapsed());
 
     // let encoded = gamma_encode(&mtf);
 
@@ -156,7 +169,7 @@ impl HuffmanTree {
             .to_table(&mut Vec::new(), &mut table, &mut tree);
 
         for (i, x) in cnt.iter().enumerate().filter(|&(_, x)| *x > 0) {
-            println!("{}, {}, {}", i, x, table[i].len());
+            // println!("{}, {}, {}", i, x, table[i].len());
         }
 
         HuffmanTree {
@@ -244,16 +257,6 @@ fn gamma_encode(bytes: &[u8]) -> Vec<bool> {
         for b in gamma(*x + 1) {
             res.push(b);
         }
-    }
-    res
-}
-
-// byte: positive number
-fn delta(byte: u8) -> Vec<bool> {
-    let len = 8 - byte.leading_zeros();
-    let mut res = gamma(len.try_into().unwrap());
-    for i in (0..len - 1).rev() {
-        res.push(byte >> i & 1 == 1);
     }
     res
 }
