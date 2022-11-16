@@ -12,28 +12,24 @@ fn main() {
     s_as_bytes.push(0x00u8);
 
     let clock = Instant::now();
-    
     let bwted = Bwt::encode(&s_as_bytes);
     println!("{:?} for encode BWT", clock.elapsed());
 
     let clock = Instant::now();
-    
     let mtf = mtf_encode(&bwted.bwt);
     println!("{:?} for encode MTF", clock.elapsed());
 
-    // println!("{:?}\n{:?}", sa.sa, sa.s);
-    // println!("{}", String::from_utf8_lossy(&bwted.bwt));
-    // println!("{:?}", mtf);
+    let clock = Instant::now();
+    let rle = run_length(&mtf);
+    println!("{:?} for encode Huffman", clock.elapsed());
 
     let clock = Instant::now();
-    let huffman_tree = HuffmanTree::new(&mtf);
+    let huffman_tree = HuffmanTree::new(&rle);
     println!("{:?} for build the Huffman tree", clock.elapsed());
 
     let clock = Instant::now();
-    let encoded = huffman_encode_with_tree(&mtf, &huffman_tree);
+    let encoded = huffman_encode_with_tree(&rle, &huffman_tree);
     println!("{:?} for encode Huffman", clock.elapsed());
-
-    // let encoded = gamma_encode(&mtf);
 
     // let huffman_tree = HuffmanTree::new(&s_as_bytes);
     // let encoded = huffman_encode_with_tree(&s_as_bytes, &huffman_tree);
@@ -133,7 +129,7 @@ fn mtf_encode(s: &[u8]) -> Vec<u8> {
 
 enum HuffmanTreeRepresentation {
     InternalNode,
-    Alphabet(u8),
+    Alphabet(u16)
 }
 
 struct HuffmanTree {
@@ -142,8 +138,8 @@ struct HuffmanTree {
 }
 
 impl HuffmanTree {
-    fn new(bytes: &[u8]) -> Self {
-        let mut cnt = vec![0; 256];
+    fn new(bytes: &[u16]) -> Self {
+        let mut cnt = vec![0; 65536];
         for x in bytes.iter() {
             cnt[*x as usize] += 1;
         }
@@ -151,7 +147,7 @@ impl HuffmanTree {
         let mut heap = BinaryHeap::new();
         for (i, x) in cnt.iter().enumerate().filter(|&(_, x)| *x > 0) {
             // println!("{}, {}", i, x);
-            heap.push(HuffmanNode::new(u8::try_from(i).unwrap(), *x));
+            heap.push(HuffmanNode::new(u16::try_from(i).unwrap(), *x));
         }
 
         while heap.len() > 1 {
@@ -161,7 +157,7 @@ impl HuffmanTree {
         }
 
         // Huhhman table
-        let mut table = vec![Vec::new(); 256];
+        let mut table = vec![Vec::new(); 65536];
         // HuffmanTree Tree の括弧列表現
         let mut tree = vec![HuffmanTreeRepresentation::InternalNode];
         heap.pop()
@@ -182,13 +178,13 @@ impl HuffmanTree {
 #[derive(PartialEq, PartialOrd, Eq, Ord)]
 struct HuffmanNode {
     count: isize,
-    label: Option<u8>,
+    label: Option<u16>,
     left: Option<Box<HuffmanNode>>,
     right: Option<Box<HuffmanNode>>,
 }
 
 impl HuffmanNode {
-    fn new(label: u8, count: isize) -> Self {
+    fn new(label: u16, count: isize) -> Self {
         HuffmanNode {
             count: -count,
             label: Some(label),
@@ -230,7 +226,7 @@ impl HuffmanNode {
 }
 
 // tree -> code の順番
-fn huffman_encode_with_tree(bytes: &[u8], huffman_tree: &HuffmanTree) -> Vec<bool> {
+fn huffman_encode_with_tree(bytes: &[u16], huffman_tree: &HuffmanTree) -> Vec<bool> {
     let mut bits = Vec::new();
     for b in bytes.iter() {
         for f in huffman_tree.table[*b as usize].iter() {
@@ -258,5 +254,29 @@ fn gamma_encode(bytes: &[u8]) -> Vec<bool> {
             res.push(b);
         }
     }
+    res
+}
+
+fn run_length(bytes: &[u8]) -> Vec<u16> {
+    let mut cnt = 0;
+    let mut res: Vec<u16> = Vec::new();
+    for &x in bytes.iter() {
+        if 0 != x {
+            if cnt != 0 {
+                res.push(0);
+                res.push(cnt - 1);
+                cnt = 0;
+            }
+            res.push(x.try_into().unwrap());
+        } else  {
+            cnt += 1;
+        }
+    }
+    if cnt != 0 {
+        res.push(0);
+        res.push(cnt - 1);
+        // cnt = 0;
+    }
+
     res
 }
