@@ -21,7 +21,7 @@ fn main() {
 
     let clock = Instant::now();
     let rle = run_length(&mtf);
-    println!("{:?} for encode Huffman", clock.elapsed());
+    println!("{:?} for encode RLE", clock.elapsed());
 
     let clock = Instant::now();
     let huffman_tree = HuffmanTree::new(&rle);
