@@ -22,7 +22,7 @@ fn main() {
     println!("{:?} for encode MTF", clock.elapsed());
 
     let clock = Instant::now();
-    let rle = run_length(&mtf);
+    let rle = zero_run_length(&mtf);
     println!("{:?} for encode RLE", clock.elapsed());
 
     let clock = Instant::now();
@@ -56,16 +56,22 @@ impl Bwt {
     }
 }
 
+// mnt2
 fn mtf_encode(s: &[u8]) -> Vec<u8> {
     let mut table: Vec<u8> = (0..=255).collect();
 
     let mut res = vec![0; s.len()];
+    let mut prev = 1;
     for (i, x) in s.iter().enumerate() {
         let pos = table.iter().position(|a| a == x).unwrap();
         res[i] = pos;
-        for j in (0..pos).rev() {
+        for j in (1..pos).rev() {
             table.swap(j, j + 1);
         }
+        if pos == 1 && prev != 0 {
+            table.swap(0, 1);
+        }
+        prev = pos;
     }
 
     res.into_iter().map(|x| x as u8).collect()
@@ -172,7 +178,7 @@ fn huffman_encode_with_tree(bytes: &[u16], huffman_tree: &HuffmanTree) -> Vec<bo
     bits
 }
 
-fn run_length(bytes: &[u8]) -> Vec<u16> {
+fn zero_run_length(bytes: &[u8]) -> Vec<u16> {
     let mut cnt = 0;
     let mut res: Vec<u16> = Vec::new();
     for &x in bytes.iter() {
