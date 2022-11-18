@@ -100,9 +100,9 @@ impl HuffmanTree {
             heap.push(a.merge(b));
         }
 
-        // Huhhman table
+        // Huffman table
         let mut table = vec![Vec::new(); 65536];
-        // HuffmanTree Tree の括弧列表現
+        // HuffmanTree Tree の表現
         let mut tree = vec![HuffmanTreeRepresentation::InternalNode];
         heap.pop()
             .unwrap()
