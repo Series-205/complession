@@ -1,6 +1,8 @@
 use std::collections::BinaryHeap;
 use std::time::Instant;
-// use bitvec::*;
+
+mod bitvec;
+mod suffix_array;
 
 fn main() {
     let mut s_as_bytes = include_bytes!("../sample/bible.txt").to_vec();
@@ -37,71 +39,13 @@ fn main() {
 }
 
 #[derive(Debug)]
-struct SuffixArray {
-    sa: Vec<usize>,
-    s: Vec<u8>,
-}
-
-impl SuffixArray {
-    fn new(s: &[u8]) -> SuffixArray {
-        let n = s.len();
-        let mut sa: Vec<usize> = (0..n).collect();
-        sa.sort_by(|&a, &b| {
-            if s[a] == s[b] {
-                b.cmp(&a)
-            } else {
-                s[a].cmp(&s[b])
-            }
-        });
-        let mut classes = vec![0; n];
-        let mut c: Vec<usize> = s.into_iter().map(|&x| x as usize).collect();
-        let mut cnt: Vec<usize>;
-
-        let mut len = 1;
-        while len < n {
-            for i in 0..n {
-                classes[sa[i]] = if i > 0
-                    && c[sa[i - 1]] == c[sa[i]]
-                    && sa[i - 1] + len < n
-                    && c[sa[i - 1] + len / 2] == c[sa[i] + len / 2]
-                {
-                    classes[sa[i - 1]]
-                } else {
-                    i
-                };
-            }
-
-            cnt = (0..n).collect();
-            c = sa.clone();
-
-            for i in 0..n {
-                if c[i] >= len {
-                    let s1 = c[i] - len;
-                    sa[cnt[classes[s1]]] = s1;
-                    cnt[classes[s1]] += 1;
-                }
-            }
-
-            c = classes.clone();
-
-            len *= 2;
-        }
-
-        SuffixArray {
-            sa: sa,
-            s: s.to_vec(),
-        }
-    }
-}
-
-#[derive(Debug)]
 struct Bwt {
     bwt: Vec<u8>,
 }
 
 impl Bwt {
     fn encode(s: &[u8]) -> Bwt {
-        let sa = SuffixArray::new(s);
+        let sa = suffix_array::SuffixArray::new(s);
         let n = sa.s.len();
         let mut bwt = vec![0; n];
         for (i, x) in sa.sa.iter().enumerate() {
@@ -129,7 +73,7 @@ fn mtf_encode(s: &[u8]) -> Vec<u8> {
 
 enum HuffmanTreeRepresentation {
     InternalNode,
-    Alphabet(u16)
+    Alphabet(u16),
 }
 
 struct HuffmanTree {
@@ -164,14 +108,7 @@ impl HuffmanTree {
             .unwrap()
             .to_table(&mut Vec::new(), &mut table, &mut tree);
 
-        for (i, x) in cnt.iter().enumerate().filter(|&(_, x)| *x > 0) {
-            // println!("{}, {}, {}", i, x, table[i].len());
-        }
-
-        HuffmanTree {
-            table: table,
-            tree: tree,
-        }
+        HuffmanTree { table, tree }
     }
 }
 
@@ -225,7 +162,6 @@ impl HuffmanNode {
     }
 }
 
-// tree -> code の順番
 fn huffman_encode_with_tree(bytes: &[u16], huffman_tree: &HuffmanTree) -> Vec<bool> {
     let mut bits = Vec::new();
     for b in bytes.iter() {
@@ -234,27 +170,6 @@ fn huffman_encode_with_tree(bytes: &[u16], huffman_tree: &HuffmanTree) -> Vec<bo
         }
     }
     bits
-}
-
-// byte: positive number
-fn gamma(byte: u8) -> Vec<bool> {
-    let len = 8 - byte.leading_zeros();
-    let mut res = vec![false; len as usize - 1];
-    for i in (0..len).rev() {
-        res.push(byte >> i & 1 == 1);
-    }
-    res
-}
-
-fn gamma_encode(bytes: &[u8]) -> Vec<bool> {
-    let mut res = Vec::new();
-    for x in bytes.iter() {
-        // 0 は符号化できないので 1 足す
-        for b in gamma(*x + 1) {
-            res.push(b);
-        }
-    }
-    res
 }
 
 fn run_length(bytes: &[u8]) -> Vec<u16> {
@@ -268,7 +183,7 @@ fn run_length(bytes: &[u8]) -> Vec<u16> {
                 cnt = 0;
             }
             res.push(x.try_into().unwrap());
-        } else  {
+        } else {
             cnt += 1;
         }
     }
