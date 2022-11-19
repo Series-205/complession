@@ -5,7 +5,7 @@ mod bitvec;
 mod suffix_array;
 
 fn main() {
-    let mut s_as_bytes = include_bytes!("../sample/bible.txt").to_vec();
+    let mut s_as_bytes = include_bytes!("../sample/world192.txt").to_vec();
 
     // 0x00 が含まれないことを確認
     for &x in s_as_bytes.iter() {
@@ -79,7 +79,7 @@ fn mtf_encode(s: &[u8]) -> Vec<u8> {
 
 enum HuffmanTreeRepresentation {
     InternalNode,
-    Alphabet(u16),
+    Alphabet(u8),
 }
 
 struct HuffmanTree {
@@ -88,8 +88,8 @@ struct HuffmanTree {
 }
 
 impl HuffmanTree {
-    fn new(bytes: &[u16]) -> Self {
-        let mut cnt = vec![0; 65536];
+    fn new(bytes: &[u8]) -> Self {
+        let mut cnt = vec![0; 256];
         for x in bytes.iter() {
             cnt[*x as usize] += 1;
         }
@@ -97,7 +97,7 @@ impl HuffmanTree {
         let mut heap = BinaryHeap::new();
         for (i, x) in cnt.iter().enumerate().filter(|&(_, x)| *x > 0) {
             // println!("{}, {}", i, x);
-            heap.push(HuffmanNode::new(u16::try_from(i).unwrap(), *x));
+            heap.push(HuffmanNode::new(u8::try_from(i).unwrap(), *x));
         }
 
         while heap.len() > 1 {
@@ -107,7 +107,7 @@ impl HuffmanTree {
         }
 
         // Huffman table
-        let mut table = vec![Vec::new(); 65536];
+        let mut table = vec![Vec::new(); 256];
         // HuffmanTree Tree の表現
         let mut tree = vec![HuffmanTreeRepresentation::InternalNode];
         heap.pop()
@@ -121,13 +121,13 @@ impl HuffmanTree {
 #[derive(PartialEq, PartialOrd, Eq, Ord)]
 struct HuffmanNode {
     count: isize,
-    label: Option<u16>,
+    label: Option<u8>,
     left: Option<Box<HuffmanNode>>,
     right: Option<Box<HuffmanNode>>,
 }
 
 impl HuffmanNode {
-    fn new(label: u16, count: isize) -> Self {
+    fn new(label: u8, count: isize) -> Self {
         HuffmanNode {
             count: -count,
             label: Some(label),
@@ -168,7 +168,7 @@ impl HuffmanNode {
     }
 }
 
-fn huffman_encode_with_tree(bytes: &[u16], huffman_tree: &HuffmanTree) -> Vec<bool> {
+fn huffman_encode_with_tree(bytes: &[u8], huffman_tree: &HuffmanTree) -> Vec<bool> {
     let mut bits = Vec::new();
     for b in bytes.iter() {
         for f in huffman_tree.table[*b as usize].iter() {
@@ -178,24 +178,28 @@ fn huffman_encode_with_tree(bytes: &[u16], huffman_tree: &HuffmanTree) -> Vec<bo
     bits
 }
 
-fn zero_run_length(bytes: &[u8]) -> Vec<u16> {
-    let mut cnt = 0;
-    let mut res: Vec<u16> = Vec::new();
+fn zero_run_length(bytes: &[u8]) -> Vec<u8> {
+    let mut cnt: u16 = 0;
+    let mut res: Vec<u8> = Vec::new();
     for &x in bytes.iter() {
         if 0 != x {
             if cnt != 0 {
                 res.push(0);
-                res.push(cnt - 1);
+                res.push((cnt - 1).try_into().unwrap());
                 cnt = 0;
             }
             res.push(x.try_into().unwrap());
         } else {
             cnt += 1;
+            if cnt == 256 {
+                res.push(255);
+                cnt = 0;
+            }
         }
     }
     if cnt != 0 {
         res.push(0);
-        res.push(cnt - 1);
+        res.push((cnt - 1).try_into().unwrap());
         // cnt = 0;
     }
 
