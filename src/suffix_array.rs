@@ -18,7 +18,7 @@ impl<'a> SuffixArray<'a> {
         i > 0 && !is_s.at(i - 1) && is_s.at(i)
     }
 
-    fn sa_is<T>(s: &[T], sigma: usize) -> Vec<usize>
+    pub fn sa_is<T>(s: &[T], sigma: usize) -> Vec<usize>
     where
         T: Ord + Into<usize> + Copy,
     {

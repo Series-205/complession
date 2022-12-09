@@ -35,4 +35,8 @@ impl Bitvec {
         self.len += 1;
         self.set(self.len - 1, bit);
     }
+
+    pub fn len(&self) -> usize {
+        self.len
+    }
 }

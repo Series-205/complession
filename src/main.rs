@@ -5,7 +5,7 @@ mod bitvec;
 mod suffix_array;
 
 fn main() {
-    let mut s_as_bytes = include_bytes!("../sample/world192.txt").to_vec();
+    let mut s_as_bytes = include_bytes!("../sample/alice29.txt").to_vec();
 
     // 0x00 が含まれないことを確認
     for &x in s_as_bytes.iter() {
@@ -13,29 +13,31 @@ fn main() {
     }
     s_as_bytes.push(0x00u8);
 
+    println!("{}", s_as_bytes.len());
+
     let clock = Instant::now();
-    let bwted = Bwt::encode(&s_as_bytes);
+    let s_as_bytes = Bwt::encode(&s_as_bytes);
     println!("{:?} for encode BWT", clock.elapsed());
 
     let clock = Instant::now();
-    let mtf = mtf_encode(&bwted.bwt);
+    let s_as_bytes = mtf_encode(&s_as_bytes.bwt);
     println!("{:?} for encode MTF", clock.elapsed());
 
     let clock = Instant::now();
-    let rle = zero_run_length(&mtf);
+    let s_as_bytes = zero_run_length(&s_as_bytes);
     println!("{:?} for encode RLE", clock.elapsed());
 
     let clock = Instant::now();
-    let huffman_tree = HuffmanTree::new(&rle);
+    let huffman_tree = HuffmanTree::new(&s_as_bytes);
     println!("{:?} for build the Huffman tree", clock.elapsed());
 
     let clock = Instant::now();
-    let encoded = huffman_encode_with_tree(&rle, &huffman_tree);
+    let s_as_bytes = huffman_encode_with_tree(&s_as_bytes, &huffman_tree);
     println!("{:?} for encode Huffman", clock.elapsed());
 
     // let huffman_tree = HuffmanTree::new(&s_as_bytes);
     // let encoded = huffman_encode_with_tree(&s_as_bytes, &huffman_tree);
-    println!("{} -> {}", s_as_bytes.len(), encoded.len() / 8);
+    println!("{}", s_as_bytes.len() / 8);
 }
 
 #[derive(Debug)]
@@ -168,8 +170,8 @@ impl HuffmanNode {
     }
 }
 
-fn huffman_encode_with_tree(bytes: &[u8], huffman_tree: &HuffmanTree) -> Vec<bool> {
-    let mut bits = Vec::new();
+fn huffman_encode_with_tree(bytes: &[u8], huffman_tree: &HuffmanTree) -> bitvec::Bitvec {
+    let mut bits = bitvec::Bitvec::new(0);
     for b in bytes.iter() {
         for f in huffman_tree.table[*b as usize].iter() {
             bits.push(*f);
