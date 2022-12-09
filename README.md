@@ -1,1 +1,1 @@
-SA, BWT, MTF, Huffman, gamma, delta
+SA, BWT, MTF, RLE, Huffman
